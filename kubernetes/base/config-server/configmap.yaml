@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-server-config
+  namespace: default
+data:
+  SERVER_PORT: "8888"
+  CONSUL_HOST: "consul-server"
+  CONSUL_PORT: "8500"
+  CONSUL_ENDPOINT: "http://consul-server:8500"
+  CONSUL_URI: "http://consul-server:8500"

@@ -1,0 +1,88 @@
+name: Deploy to GKE
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+
+env:
+  REGISTRY: us-central1-docker.pkg.dev
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: konecta-erp-cluster
+  GKE_REGION: us-central1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          # workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          # service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region ${{ env.GKE_REGION }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "overlay=prod" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+            echo "overlay=staging" >> $GITHUB_OUTPUT
+          else
+            echo "overlay=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to GKE
+        run: |
+          kubectl apply -k infrastructure/kubernetes/overlays/${{ steps.env.outputs.overlay }}
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/api-gateway -n default --timeout=10m
+          kubectl rollout status deployment/authentication-service -n default --timeout=10m
+          kubectl rollout status deployment/frontend -n default --timeout=10m
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n default
+          kubectl get svc -n default
+          kubectl get ingress -n default
+
+      - name: Get Ingress IP
+        id: ingress-ip
+        run: |
+          INGRESS_IP=$(kubectl get ingress konecta-erp-ingress -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "ip=${INGRESS_IP}" >> $GITHUB_OUTPUT
+          echo "Ingress IP: ${INGRESS_IP}"
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment: ${{ steps.env.outputs.overlay }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Cluster: ${{ env.GKE_CLUSTER }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Region: ${{ env.GKE_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Ingress IP: ${{ steps.ingress-ip.outputs.ip }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

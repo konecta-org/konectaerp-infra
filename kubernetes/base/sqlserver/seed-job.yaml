@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sqlserver-seed
+  namespace: default
+  labels:
+    app: sqlserver-seed
+    component: database-init
+spec:
+  ttlSecondsAfterFinished: 100
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app: sqlserver-seed
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-sqlserver
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for SQL Server to be ready..."
+              until nc -z sqlserver 1433; do
+                echo "SQL Server is unavailable - sleeping"
+                sleep 2
+              done
+              echo "SQL Server is up - waiting 30 more seconds for full initialization"
+              sleep 30
+      containers:
+        - name: seed
+          image: mcr.microsoft.com/mssql-tools
+          env:
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secret
+                  key: SA_PASSWORD
+          command:
+            - /bin/bash
+            - -c
+            - |
+              counter=0
+              while [ $counter -lt 30 ]; do
+                if /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P "$SA_PASSWORD" -C -Q "SELECT 1" -b -h -1 > /dev/null 2>&1; then
+                  echo 'SQL Server is ready!'
+                  /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P "$SA_PASSWORD" -C -d master -i /scripts/create-databases.sql
+                  exit 0
+                fi
+                counter=$((counter+1))
+                echo "Waiting for SQL Server... (attempt $counter/30)"
+                sleep 2
+              done
+              echo 'SQL Server connection timeout!'
+              exit 1
+          volumeMounts:
+            - name: init-script
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: init-script
+          configMap:
+            name: sqlserver-init-script

@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-management-service-config
+  namespace: default
+data:
+  ASPNETCORE_ENVIRONMENT: "Development"
+  SPRING__APPLICATION__NAME: "user-management-service"
+  SPRING__CLOUD__CONFIG__URI: "http://config-server:8888"
+  SPRING__CLOUD__CONFIG__FAILFAST: "false"
+  Consul__Host: "http://consul-server:8500"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-management-service
+  namespace: default
+  labels:
+    app: user-management-service
+    component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-management-service
+  template:
+    metadata:
+      labels:
+        app: user-management-service
+        component: backend
+    spec:
+      containers:
+        - name: user-management-service
+          image: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/user-management-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5078
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: user-management-service-config
+          env:
+            - name: ConnectionStrings__DefaultConnection
+              value: "Server=sqlserver;Database=Konecta_UserManagement;User Id=sa;Password=pa55w0rd!;TrustServerCertificate=True;"
+            - name: RabbitMq__HostName
+              value: "rabbitmq"
+            - name: RabbitMq__Port
+              value: "5672"
+            - name: RabbitMq__UserName
+              value: "guest"
+            - name: RabbitMq__Password
+              value: "guest"
+            - name: ServiceAuth__SharedSecret
+              value: "KonectaSharedSecret!"
+            - name: ServiceConfig__PublicHost
+              value: "user-management-service"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /system/health
+              port: 5078
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /system/health
+              port: 5078
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-management-service
+  namespace: default
+  labels:
+    app: user-management-service
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5078
+      targetPort: 5078
+      protocol: TCP
+      name: http
+  selector:
+    app: user-management-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: user-management-service-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: user-management-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

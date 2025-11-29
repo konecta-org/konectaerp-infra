@@ -1,0 +1,57 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: default
+
+bases:
+  - ../../base
+
+namePrefix: prod-
+
+commonLabels:
+  environment: production
+
+# Image tags for production environment (use specific versions, not latest)
+images:
+  - name: ${ARTIFACT_REGISTRY_URL}/config-server
+    newTag: v1.0.0
+  - name: ${ARTIFACT_REGISTRY_URL}/api-gateway
+    newTag: v1.0.0
+  - name: ${ARTIFACT_REGISTRY_URL}/authentication-service
+    newTag: v1.0.0
+  - name: ${ARTIFACT_REGISTRY_URL}/hr-service
+    newTag: v1.0.0
+  - name: ${ARTIFACT_REGISTRY_URL}/inventory-service
+    newTag: v1.0.0
+  - name: ${ARTIFACT_REGISTRY_URL}/finance-service
+    newTag: v1.0.0
+  - name: ${ARTIFACT_REGISTRY_URL}/user-management-service
+    newTag: v1.0.0
+  - name: ${ARTIFACT_REGISTRY_URL}/reporting-service
+    newTag: v1.0.0
+  - name: ${ARTIFACT_REGISTRY_URL}/frontend
+    newTag: v1.0.0
+
+patchesStrategicMerge:
+  - patch-replicas.yaml
+  - patch-resources.yaml
+  - patch-hpa.yaml
+  - monitoring-patch.yaml
+
+# Remove MailHog in production
+patchesJson6902:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: mailhog
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 0
+
+configMapGenerator:
+  - name: environment-config
+    literals:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARN

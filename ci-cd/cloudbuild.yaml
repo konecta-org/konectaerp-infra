@@ -1,0 +1,199 @@
+steps:
+  # Build all Docker images
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-config-server"
+    args:
+      - "build"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/config-server:${SHORT_SHA}"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/config-server:${_ENV}-latest"
+      - "-f"
+      - "konecta_erp/backend/config/Dockerfile"
+      - "konecta_erp/backend/config"
+    waitFor: ["-"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-api-gateway"
+    args:
+      - "build"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/api-gateway:${SHORT_SHA}"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/api-gateway:${_ENV}-latest"
+      - "-f"
+      - "konecta_erp/backend/ApiGateWay/Dockerfile"
+      - "konecta_erp/backend/ApiGateWay"
+    waitFor: ["-"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-authentication-service"
+    args:
+      - "build"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/authentication-service:${SHORT_SHA}"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/authentication-service:${_ENV}-latest"
+      - "-f"
+      - "konecta_erp/backend/AuthenticationService/Dockerfile"
+      - "konecta_erp"
+    waitFor: ["-"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-hr-service"
+    args:
+      - "build"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/hr-service:${SHORT_SHA}"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/hr-service:${_ENV}-latest"
+      - "-f"
+      - "konecta_erp/backend/HrService/Dockerfile"
+      - "konecta_erp"
+    waitFor: ["-"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-inventory-service"
+    args:
+      - "build"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/inventory-service:${SHORT_SHA}"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/inventory-service:${_ENV}-latest"
+      - "-f"
+      - "konecta_erp/backend/InventoryService/Dockerfile"
+      - "konecta_erp"
+    waitFor: ["-"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-finance-service"
+    args:
+      - "build"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/finance-service:${SHORT_SHA}"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/finance-service:${_ENV}-latest"
+      - "-f"
+      - "konecta_erp/backend/FinanceService/Dockerfile"
+      - "konecta_erp"
+    waitFor: ["-"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-user-management-service"
+    args:
+      - "build"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/user-management-service:${SHORT_SHA}"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/user-management-service:${_ENV}-latest"
+      - "-f"
+      - "konecta_erp/backend/UserManagementService/Dockerfile"
+      - "konecta_erp"
+    waitFor: ["-"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-reporting-service"
+    args:
+      - "build"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/reporting-service:${SHORT_SHA}"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/reporting-service:${_ENV}-latest"
+      - "-f"
+      - "konecta_erp/backend/ReportingService/Dockerfile"
+      - "konecta_erp/backend/ReportingService"
+    waitFor: ["-"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-frontend"
+    args:
+      - "build"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/frontend:${SHORT_SHA}"
+      - "-t"
+      - "${_ARTIFACT_REGISTRY_URL}/frontend:${_ENV}-latest"
+      - "-f"
+      - "konecta_erp/frontend/Dockerfile"
+      - "konecta_erp/frontend"
+    waitFor: ["-"]
+
+  # Push all images
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-images"
+    args: ["push", "--all-tags", "${_ARTIFACT_REGISTRY_URL}/config-server"]
+    waitFor: ["build-config-server"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "--all-tags", "${_ARTIFACT_REGISTRY_URL}/api-gateway"]
+    waitFor: ["build-api-gateway"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      ["push", "--all-tags", "${_ARTIFACT_REGISTRY_URL}/authentication-service"]
+    waitFor: ["build-authentication-service"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "--all-tags", "${_ARTIFACT_REGISTRY_URL}/hr-service"]
+    waitFor: ["build-hr-service"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "--all-tags", "${_ARTIFACT_REGISTRY_URL}/inventory-service"]
+    waitFor: ["build-inventory-service"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "--all-tags", "${_ARTIFACT_REGISTRY_URL}/finance-service"]
+    waitFor: ["build-finance-service"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "--all-tags",
+        "${_ARTIFACT_REGISTRY_URL}/user-management-service",
+      ]
+    waitFor: ["build-user-management-service"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "--all-tags", "${_ARTIFACT_REGISTRY_URL}/reporting-service"]
+    waitFor: ["build-reporting-service"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "--all-tags", "${_ARTIFACT_REGISTRY_URL}/frontend"]
+    waitFor: ["build-frontend"]
+
+  # Deploy to GKE using Kustomize
+  - name: "gcr.io/cloud-builders/kubectl"
+    id: "deploy-to-gke"
+    args:
+      - "apply"
+      - "-k"
+      - "infrastructure/kubernetes/overlays/${_ENV}"
+    env:
+      - "CLOUDSDK_COMPUTE_REGION=${_REGION}"
+      - "CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}"
+    waitFor:
+      - "push-images"
+
+  # Wait for rollout
+  - name: "gcr.io/cloud-builders/kubectl"
+    args:
+      - "rollout"
+      - "status"
+      - "deployment/api-gateway"
+      - "-n"
+      - "default"
+    env:
+      - "CLOUDSDK_COMPUTE_REGION=${_REGION}"
+      - "CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}"
+
+substitutions:
+  _ARTIFACT_REGISTRY_URL: "us-central1-docker.pkg.dev/${PROJECT_ID}/konecta-erp"
+  _ENV: "dev"
+  _REGION: "us-central1"
+  _CLUSTER_NAME: "konecta-erp-cluster"
+
+options:
+  machineType: "E2_HIGHCPU_8"
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: "3600s"

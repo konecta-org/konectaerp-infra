@@ -1,0 +1,57 @@
+# Base kustomization file
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: default
+
+resources:
+  # Infrastructure
+  - sqlserver/secret.yaml
+  - sqlserver/pvc.yaml
+  - sqlserver/statefulset.yaml
+  - sqlserver/service.yaml
+  - sqlserver/configmap.yaml
+  - sqlserver/seed-job.yaml
+
+  - rabbitmq/secret.yaml
+  - rabbitmq/pvc.yaml
+  - rabbitmq/statefulset.yaml
+  - rabbitmq/service.yaml
+
+  - mailhog/deployment.yaml
+  - mailhog/service.yaml
+
+  # Application services
+  - config-server/configmap.yaml
+  - config-server/deployment.yaml
+  - config-server/service.yaml
+
+  - api-gateway/configmap.yaml
+  - api-gateway/deployment.yaml
+  - api-gateway/service.yaml
+  - api-gateway/hpa.yaml
+
+  - authentication-service/configmap.yaml
+  - authentication-service/deployment.yaml
+  - authentication-service/service.yaml
+  - authentication-service/hpa.yaml
+
+  - hr-service/all.yaml
+  - inventory-service/all.yaml
+  - finance-service/all.yaml
+  - user-management-service/all.yaml
+  - reporting-service/all.yaml
+
+  - frontend/all.yaml
+
+  # Monitoring
+  - prometheus
+  - grafana
+
+  # Networking
+  - networking/ingress.yaml
+  - networking/certificate.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: konecta-erp

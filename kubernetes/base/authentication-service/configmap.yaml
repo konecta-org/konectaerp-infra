@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentication-service-config
+  namespace: default
+data:
+  ASPNETCORE_ENVIRONMENT: "Development"
+  SPRING__APPLICATION__NAME: "authentication-service"
+  SPRING__CLOUD__CONFIG__URI: "http://config-server:8888"
+  SPRING__CLOUD__CONFIG__FAILFAST: "false"
+  Consul__Host: "http://consul-server:8500"
+  USER_MANAGEMENT_SERVICE_URI: "http://user-management-service:5078"

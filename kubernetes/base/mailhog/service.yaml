@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailhog
+  namespace: default
+  labels:
+    app: mailhog
+    component: email-testing
+spec:
+  type: ClusterIP
+  ports:
+    - port: 1025
+      targetPort: 1025
+      protocol: TCP
+      name: smtp
+    - port: 8025
+      targetPort: 8025
+      protocol: TCP
+      name: http
+  selector:
+    app: mailhog

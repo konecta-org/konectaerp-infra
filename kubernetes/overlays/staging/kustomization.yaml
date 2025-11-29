@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: default
+
+bases:
+  - ../../base
+
+namePrefix: staging-
+
+commonLabels:
+  environment: staging
+
+# Image tags for staging environment
+images:
+  - name: ${ARTIFACT_REGISTRY_URL}/config-server
+    newTag: staging-latest
+  - name: ${ARTIFACT_REGISTRY_URL}/api-gateway
+    newTag: staging-latest
+  - name: ${ARTIFACT_REGISTRY_URL}/authentication-service
+    newTag: staging-latest
+  - name: ${ARTIFACT_REGISTRY_URL}/hr-service
+    newTag: staging-latest
+  - name: ${ARTIFACT_REGISTRY_URL}/inventory-service
+    newTag: staging-latest
+  - name: ${ARTIFACT_REGISTRY_URL}/finance-service
+    newTag: staging-latest
+  - name: ${ARTIFACT_REGISTRY_URL}/user-management-service
+    newTag: staging-latest
+  - name: ${ARTIFACT_REGISTRY_URL}/reporting-service
+    newTag: staging-latest
+  - name: ${ARTIFACT_REGISTRY_URL}/frontend
+    newTag: staging-latest
+
+patchesStrategicMerge:
+  - patch-resources.yaml
+  - monitoring-patch.yaml
+
+configMapGenerator:
+  - name: environment-config
+    literals:
+      - ENVIRONMENT=staging
+      - LOG_LEVEL=INFO

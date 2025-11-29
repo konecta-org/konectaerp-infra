@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authentication-service
+  namespace: default
+  labels:
+    app: authentication-service
+    component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: authentication-service
+  template:
+    metadata:
+      labels:
+        app: authentication-service
+        component: backend
+    spec:
+      containers:
+        - name: authentication-service
+          image: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/authentication-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7280
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: authentication-service-config
+          env:
+            - name: ConnectionStrings__DefaultConnection
+              value: "Server=sqlserver;Database=Konecta_Auth;User Id=sa;Password=pa55w0rd!;TrustServerCertificate=True;"
+            - name: RabbitMq__HostName
+              value: "rabbitmq"
+            - name: RabbitMq__Port
+              value: "5672"
+            - name: RabbitMq__UserName
+              value: "guest"
+            - name: RabbitMq__Password
+              value: "guest"
+            - name: ServiceAuth__SharedSecret
+              value: "KonectaSharedSecret!"
+            - name: Email__SmtpHost
+              value: "mailhog"
+            - name: Email__SmtpPort
+              value: "1025"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /system/health
+              port: 7280
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /system/health
+              port: 7280
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3

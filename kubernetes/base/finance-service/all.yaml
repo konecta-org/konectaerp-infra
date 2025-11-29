@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: finance-service-config
+  namespace: default
+data:
+  ASPNETCORE_ENVIRONMENT: "Development"
+  SPRING__APPLICATION__NAME: "finance-service"
+  SPRING__CLOUD__CONFIG__URI: "http://config-server:8888"
+  SPRING__CLOUD__CONFIG__FAILFAST: "false"
+  Consul__Host: "http://consul-server:8500"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-service
+  namespace: default
+  labels:
+    app: finance-service
+    component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: finance-service
+  template:
+    metadata:
+      labels:
+        app: finance-service
+        component: backend
+    spec:
+      containers:
+        - name: finance-service
+          image: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/finance-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5003
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: finance-service-config
+          env:
+            - name: ConnectionStrings__DefaultConnection
+              value: "Server=sqlserver;Database=Konecta_Finance;User Id=sa;Password=pa55w0rd!;TrustServerCertificate=True;"
+            - name: RabbitMq__HostName
+              value: "rabbitmq"
+            - name: RabbitMq__Port
+              value: "5672"
+            - name: RabbitMq__UserName
+              value: "guest"
+            - name: RabbitMq__Password
+              value: "guest"
+            - name: ServiceConfig__PublicHost
+              value: "finance-service"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /system/health
+              port: 5003
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /system/health
+              port: 5003
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: finance-service
+  namespace: default
+  labels:
+    app: finance-service
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5003
+      targetPort: 5003
+      protocol: TCP
+      name: http
+  selector:
+    app: finance-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: finance-service-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: finance-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

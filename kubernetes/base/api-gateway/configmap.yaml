@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+  namespace: default
+data:
+  SPRING_APPLICATION_NAME: "api-gateway"
+  SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+  SPRING_CLOUD_CONFIG_FAILFAST: "false"
+  CONSUL_HOST: "consul-server"
+  CONSUL_PORT: "8500"
+  CONSUL_SERVICE_HOST: "api-gateway"
+  AUTH_SERVICE_URI: "http://authentication-service:7280"
+  AUTH_JWKS_URI: "http://authentication-service:7280/.well-known/jwks.json"
+  HR_SERVICE_URI: "http://hr-service:5005"
+  USER_MANAGEMENT_SERVICE_URI: "http://user-management-service:5078"
+  INVENTORY_SERVICE_URI: "http://inventory-service:5020"
+  FINANCE_SERVICE_URI: "http://finance-service:5003"
+  REPORTING_SERVICE_URI: "http://reporting-service:8085"

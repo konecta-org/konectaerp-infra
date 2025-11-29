@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reporting-service-config
+  namespace: default
+data:
+  SPRING_APPLICATION_NAME: "reporting-service"
+  SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+  SPRING_CLOUD_CONFIG_FAILFAST: "false"
+  CONSUL_HOST: "consul-server"
+  CONSUL_PORT: "8500"
+  CONSUL_SERVICE_HOST: "reporting-service"
+  FINANCE_SERVICE_URI: "http://finance-service:5003"
+  HR_SERVICE_URI: "http://hr-service:5005"
+  INVENTORY_SERVICE_URI: "http://inventory-service:5020"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporting-service
+  namespace: default
+  labels:
+    app: reporting-service
+    component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reporting-service
+  template:
+    metadata:
+      labels:
+        app: reporting-service
+        component: backend
+    spec:
+      containers:
+        - name: reporting-service
+          image: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/reporting-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8085
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: reporting-service-config
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:sqlserver://sqlserver:1433;databaseName=Konecta_Reporting;encrypt=true;trustServerCertificate=true"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "sa"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "pa55w0rd!"
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USER
+              value: "guest"
+            - name: RABBITMQ_PASS
+              value: "guest"
+            - name: PUBLIC_HOST
+              value: "reporting-service"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8085
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8085
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reporting-service
+  namespace: default
+  labels:
+    app: reporting-service
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8085
+      targetPort: 8085
+      protocol: TCP
+      name: http
+  selector:
+    app: reporting-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: reporting-service-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: reporting-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
