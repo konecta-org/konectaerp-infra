@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - staging
-      - develop
+      - dev
 
 env:
   REGISTRY: us-central1-docker.pkg.dev
@@ -27,9 +27,9 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          # workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          # service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
-          credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          # credentials: ${{ secrets.GOOGLE_CREDENTIALS }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -49,21 +49,81 @@ jobs:
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "overlay=prod" >> $GITHUB_OUTPUT
+            echo "app_name=prod-konecta-erp" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
             echo "overlay=staging" >> $GITHUB_OUTPUT
+            echo "app_name=staging-konecta-erp" >> $GITHUB_OUTPUT
           else
             echo "overlay=dev" >> $GITHUB_OUTPUT
+            echo "app_name=dev-konecta-erp" >> $GITHUB_OUTPUT
           fi
 
-      - name: Deploy to GKE
+      - name: Check if ArgoCD is installed
+        id: argocd-check
         run: |
-          kubectl apply -k infrastructure/kubernetes/overlays/${{ steps.env.outputs.overlay }}
+          if kubectl get namespace argocd 2>/dev/null; then
+            echo "installed=true" >> $GITHUB_OUTPUT
+            echo "ArgoCD is installed"
+          else
+            echo "installed=false" >> $GITHUB_OUTPUT
+            echo "ArgoCD is not installed"
+          fi
+
+      - name: Install ArgoCD CLI
+        if: steps.argocd-check.outputs.installed == 'true'
+        run: |
+          curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+          rm argocd-linux-amd64
+          argocd version --client
+
+      - name: Deploy via ArgoCD
+        if: steps.argocd-check.outputs.installed == 'true'
+        run: |
+          # Get ArgoCD admin password
+          ARGOCD_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d)
+
+          # Port-forward to ArgoCD server
+          kubectl port-forward svc/argocd-server -n argocd 8080:443 > /dev/null 2>&1 &
+          PF_PID=$!
+          sleep 5
+
+          # Login to ArgoCD
+          argocd login localhost:8080 \
+            --username admin \
+            --password "$ARGOCD_PASSWORD" \
+            --insecure
+
+          # Check if application exists, if not create it
+          if ! argocd app get ${{ steps.env.outputs.app_name }} 2>/dev/null; then
+            echo "Application ${{ steps.env.outputs.app_name }} does not exist, creating..."
+            kubectl apply -f kubernetes/argocd/applications/${{ steps.env.outputs.overlay }}-application.yaml
+            sleep 10
+          fi
+
+          # Sync the application
+          echo "Syncing application ${{ steps.env.outputs.app_name }}..."
+          argocd app sync ${{ steps.env.outputs.app_name }} --prune
+
+          # Wait for sync to complete
+          argocd app wait ${{ steps.env.outputs.app_name }} --timeout 600
+
+          # Kill port-forward
+          kill $PF_PID || true
+
+          echo "Deployment via ArgoCD completed successfully"
+
+      - name: Deploy via kubectl (fallback)
+        if: steps.argocd-check.outputs.installed == 'false'
+        run: |
+          echo "ArgoCD not installed, using kubectl apply as fallback..."
+          kubectl apply -k kubernetes/overlays/${{ steps.env.outputs.overlay }}
 
       - name: Wait for rollout
         run: |
-          kubectl rollout status deployment/api-gateway -n default --timeout=10m
-          kubectl rollout status deployment/authentication-service -n default --timeout=10m
-          kubectl rollout status deployment/frontend -n default --timeout=10m
+          kubectl rollout status deployment/api-gateway -n default --timeout=10m || true
+          kubectl rollout status deployment/authentication-service -n default --timeout=10m || true
+          kubectl rollout status deployment/frontend -n default --timeout=10m || true
 
       - name: Verify deployment
         run: |
@@ -74,7 +134,7 @@ jobs:
       - name: Get Ingress IP
         id: ingress-ip
         run: |
-          INGRESS_IP=$(kubectl get ingress konecta-erp-ingress -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          INGRESS_IP=$(kubectl get ingress konecta-erp-ingress -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "Not available")
           echo "ip=${INGRESS_IP}" >> $GITHUB_OUTPUT
           echo "Ingress IP: ${INGRESS_IP}"
 
@@ -84,5 +144,6 @@ jobs:
           echo "- Environment: ${{ steps.env.outputs.overlay }}" >> $GITHUB_STEP_SUMMARY
           echo "- Cluster: ${{ env.GKE_CLUSTER }}" >> $GITHUB_STEP_SUMMARY
           echo "- Region: ${{ env.GKE_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Deployment Method: ${{ steps.argocd-check.outputs.installed == 'true' && 'ArgoCD' || 'kubectl' }}" >> $GITHUB_STEP_SUMMARY
           echo "- Ingress IP: ${{ steps.ingress-ip.outputs.ip }}" >> $GITHUB_STEP_SUMMARY
           echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,126 @@
+name: Install ArgoCD
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to install ArgoCD"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: konecta-erp-cluster
+  GKE_REGION: us-central1
+
+jobs:
+  install-argocd:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region ${{ env.GKE_REGION }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Install ArgoCD
+        run: |
+          echo "Installing ArgoCD for ${{ github.event.inputs.environment }} environment..."
+          kubectl apply -k kubernetes/overlays/${{ github.event.inputs.environment }}
+
+      - name: Wait for ArgoCD to be ready
+        run: |
+          echo "Waiting for ArgoCD server to be ready..."
+          kubectl wait --for=condition=available --timeout=300s \
+            deployment/argocd-server -n argocd || true
+
+          # Give it some extra time
+          sleep 30
+
+          kubectl get pods -n argocd
+
+      - name: Get ArgoCD admin password
+        id: argocd-password
+        run: |
+          # Wait for the secret to be created
+          for i in {1..30}; do
+            if kubectl get secret argocd-initial-admin-secret -n argocd 2>/dev/null; then
+              break
+            fi
+            echo "Waiting for ArgoCD initial admin secret... ($i/30)"
+            sleep 10
+          done
+
+          PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d)
+          echo "password=$PASSWORD" >> $GITHUB_OUTPUT
+          echo "ArgoCD admin password retrieved successfully"
+
+      - name: Get ArgoCD server URL
+        id: argocd-url
+        run: |
+          SERVICE_TYPE=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.type}')
+
+          if [ "$SERVICE_TYPE" == "LoadBalancer" ]; then
+            echo "Waiting for LoadBalancer IP..."
+            for i in {1..60}; do
+              IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+              if [ -n "$IP" ]; then
+                echo "url=https://$IP" >> $GITHUB_OUTPUT
+                echo "ArgoCD URL: https://$IP"
+                break
+              fi
+              echo "Waiting for LoadBalancer IP... ($i/60)"
+              sleep 10
+            done
+          elif [ "$SERVICE_TYPE" == "NodePort" ]; then
+            NODE_PORT=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
+            NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}')
+            if [ -z "$NODE_IP" ]; then
+              NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+            fi
+            echo "url=https://$NODE_IP:$NODE_PORT" >> $GITHUB_OUTPUT
+            echo "ArgoCD URL: https://$NODE_IP:$NODE_PORT"
+            echo "Note: For NodePort, you may need to use port-forward: kubectl port-forward svc/argocd-server -n argocd 8080:443"
+          fi
+
+      - name: Installation summary
+        run: |
+          echo "## ArgoCD Installation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Cluster: ${{ env.GKE_CLUSTER }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Region: ${{ env.GKE_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Access Information" >> $GITHUB_STEP_SUMMARY
+          echo "- URL: ${{ steps.argocd-url.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Username: \`admin\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Password: \`${{ steps.argocd-password.outputs.password }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Access the ArgoCD UI using the URL above" >> $GITHUB_STEP_SUMMARY
+          echo "2. Login with username \`admin\` and the password above" >> $GITHUB_STEP_SUMMARY
+          echo "3. Apply the root application: \`kubectl apply -f kubernetes/argocd/applications/root-app.yaml\`" >> $GITHUB_STEP_SUMMARY
+          echo "4. Configure repository access in ArgoCD UI (Settings > Repositories)" >> $GITHUB_STEP_SUMMARY
