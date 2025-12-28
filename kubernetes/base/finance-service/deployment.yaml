@@ -1,15 +1,3 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: finance-service-config
-  namespace: default
-data:
-  ASPNETCORE_ENVIRONMENT: "Development"
-  SPRING__APPLICATION__NAME: "finance-service"
-  SPRING__CLOUD__CONFIG__URI: "http://config-server:8888"
-  SPRING__CLOUD__CONFIG__FAILFAST: "false"
-  Consul__Host: "http://consul-server:8500"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -77,46 +65,4 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: finance-service
-  namespace: default
-  labels:
-    app: finance-service
-    component: backend
-spec:
-  type: ClusterIP
-  ports:
-    - port: 5003
-      targetPort: 5003
-      protocol: TCP
-      name: http
-  selector:
-    app: finance-service
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: finance-service-hpa
-  namespace: default
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: finance-service
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 80
+

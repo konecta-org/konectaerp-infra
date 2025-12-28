@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reporting-service-config
+  namespace: default
+data:
+  SPRING_APPLICATION_NAME: "reporting-service"
+  SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+  SPRING_CLOUD_CONFIG_FAILFAST: "false"
+  CONSUL_HOST: "consul-server"
+  CONSUL_PORT: "8500"
+  CONSUL_SERVICE_HOST: "reporting-service"
+  FINANCE_SERVICE_URI: "http://finance-service:5003"
+  HR_SERVICE_URI: "http://hr-service:5005"
+  INVENTORY_SERVICE_URI: "http://inventory-service:5020"
+---
+
