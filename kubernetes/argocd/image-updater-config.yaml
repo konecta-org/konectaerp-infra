@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-image-updater-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-image-updater
+    app.kubernetes.io/part-of: konecta-erp
+data:
+  # Log level (trace, debug, info, warn, error)
+  log.level: info
+
+  # Interval for checking new images (default: 2m)
+  interval: 2m
+
+  # Git commit author
+  git.user: argocd-image-updater
+  git.email: argocd-image-updater@konecta-erp.local
+
+  # Registry configuration for GCP Artifact Registry
+  # Format: <registry_name>=<registry_prefix>
+  registries.conf: |
+    registries:
+    - name: gcr
+      prefix: us-central1-docker.pkg.dev
+      api_url: https://us-central1-docker.pkg.dev
+      credentials: ext:/scripts/auth1.sh
+      default: true
+
+  # Application-specific settings
+  applications: |
+    # Applications are configured via annotations on Application resources

@@ -6,6 +6,8 @@ namespace: argocd
 resources:
   - namespace.yaml
   - install.yaml
+  - image-updater-install.yaml
+  - image-updater-config.yaml
 
 # Common labels for all ArgoCD resources
 commonLabels:
