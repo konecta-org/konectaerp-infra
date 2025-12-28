@@ -6,9 +6,6 @@ namespace: dev
 resources:
   - ../../base
   - namespace.yaml
-  - ../../base/prometheus
-  - ../../base/grafana
-  - ../../argocd
 
 # namePrefix: dev-
 
