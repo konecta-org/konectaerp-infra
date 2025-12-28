@@ -1,35 +1,38 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: default
+namespace: prod
 
 resources:
   - ../../base
+  - namespace.yaml
 
-namePrefix: prod-
+# namePrefix: prod-
 
-commonLabels:
-  environment: production
+labels:
+  - includeSelectors: true
+    pairs:
+      environment: production
 
 # Image tags for production environment (use specific versions, not latest)
 images:
-  - name: ${ARTIFACT_REGISTRY_URL}/config-server
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/config-server
     newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/api-gateway
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/api-gateway
     newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/authentication-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/authentication-service
     newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/hr-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/hr-service
     newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/inventory-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/inventory-service
     newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/finance-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/finance-service
     newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/user-management-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/user-management-service
     newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/reporting-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/reporting-service
     newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/frontend
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/frontend
     newTag: v1.0.0
 
 patchesStrategicMerge:
@@ -55,3 +58,6 @@ configMapGenerator:
     literals:
       - ENVIRONMENT=production
       - LOG_LEVEL=WARN
+
+generatorOptions:
+  disableNameSuffixHash: true

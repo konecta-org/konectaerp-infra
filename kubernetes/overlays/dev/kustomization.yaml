@@ -1,15 +1,20 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: default
+namespace: dev
 
 resources:
   - ../../base
+  - namespace.yaml
+  - ../../base/prometheus
+  - ../../base/grafana
+  - ../../argocd
 
 # namePrefix: dev-
 
 labels:
-  - pairs:
+  - includeSelectors: true
+    pairs:
       environment: dev
 
 # Image tags for dev environment
@@ -44,3 +49,6 @@ configMapGenerator:
     literals:
       - ENVIRONMENT=dev
       - LOG_LEVEL=DEBUG
+
+generatorOptions:
+  disableNameSuffixHash: true
