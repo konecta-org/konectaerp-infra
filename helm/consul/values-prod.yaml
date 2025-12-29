@@ -1,5 +1,6 @@
 # Consul for Production Environment
-fullnameOverride: consul-server
+fullnameOverride: consul
+nameOverride: consul
 
 global:
   name: consul
