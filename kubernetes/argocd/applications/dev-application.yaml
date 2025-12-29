@@ -19,7 +19,7 @@ metadata:
       reporting-service=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/reporting-service,
       frontend=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/frontend
     argocd-image-updater.argoproj.io/write-back-method: git
-    argocd-image-updater.argoproj.io/git-branch: develop
+    argocd-image-updater.argoproj.io/git-branch: dev
     # Update strategy: latest tag matching pattern
     argocd-image-updater.argoproj.io/config-server.update-strategy: latest
     argocd-image-updater.argoproj.io/config-server.allow-tags: regexp:^dev-.*
@@ -43,11 +43,11 @@ spec:
   project: default
   source:
     repoURL: https://github.com/konecta-org/konectaerp-infra.git
-    targetRevision: develop
+    targetRevision: dev
     path: kubernetes/overlays/dev
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: dev
   syncPolicy:
     automated:
       prune: true

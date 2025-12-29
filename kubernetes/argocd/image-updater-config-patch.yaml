@@ -1,0 +1,14 @@
+- op: add
+  path: /data
+  value:
+    log.level: info
+    interval: 2m
+    git.user: argocd-image-updater
+    git.email: argocd-image-updater@konecta-erp.local
+    registries.conf: |
+      registries:
+      - name: gcr
+        prefix: us-central1-docker.pkg.dev
+        api_url: https://us-central1-docker.pkg.dev
+        credentials: ext:/scripts/auth1.sh
+        default: true

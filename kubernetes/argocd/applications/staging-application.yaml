@@ -47,7 +47,7 @@ spec:
     path: kubernetes/overlays/staging
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: staging
   syncPolicy:
     automated:
       prune: true
