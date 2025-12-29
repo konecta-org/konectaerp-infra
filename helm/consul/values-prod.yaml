@@ -1,4 +1,6 @@
 # Consul for Production Environment
+fullnameOverride: consul-server
+
 global:
   name: consul
   datacenter: prod-dc1

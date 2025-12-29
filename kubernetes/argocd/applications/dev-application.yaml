@@ -43,11 +43,11 @@ spec:
   project: default
   source:
     repoURL: https://github.com/konecta-org/konectaerp-infra.git
-    targetRevision: dev
+    targetRevision: HEAD
     path: kubernetes/overlays/dev
   destination:
     server: https://kubernetes.default.svc
-    namespace: HEAD
+    namespace: dev
   syncPolicy:
     automated:
       prune: true

@@ -1,4 +1,6 @@
 # Consul for Dev Environment
+fullnameOverride: consul-server
+
 global:
   name: consul
   datacenter: dev-dc1

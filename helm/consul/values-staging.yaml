@@ -1,4 +1,6 @@
 # Consul for Staging Environment
+fullnameOverride: consul-server
+
 global:
   name: consul
   datacenter: staging-dc1

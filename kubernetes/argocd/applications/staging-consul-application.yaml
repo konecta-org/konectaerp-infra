@@ -14,7 +14,7 @@ spec:
     chart: consul
     targetRevision: 1.5.3 # Consul Helm chart version
     helm:
-      releaseName: consul-server
+      releaseName: consul
       valueFiles:
         - $values/helm/consul/values-staging.yaml
   sources:
