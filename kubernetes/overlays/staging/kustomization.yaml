@@ -35,15 +35,16 @@ images:
   - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/frontend
     newTag: staging-latest
 
-patchesStrategicMerge:
-  - patch-resources.yaml
-  - monitoring-patch.yaml
-
 configMapGenerator:
-  - name: environment-config
-    literals:
+  - literals:
       - ENVIRONMENT=staging
       - LOG_LEVEL=INFO
+    name: environment-config
 
 generatorOptions:
   disableNameSuffixHash: true
+patches:
+  - path: patch-resources.yaml
+  - path: patch-hpa.yaml
+  - path: patch-replicas.yaml
+  - path: patch-resources.yaml

@@ -50,7 +50,7 @@ jobs:
       - name: Install ArgoCD
         run: |
           echo "Installing ArgoCD for ${{ github.event.inputs.environment }} environment..."
-          kubectl apply -k kubernetes/overlays/${{ github.event.inputs.environment }}
+          kubectl apply -f kubernetes/argocd
 
       - name: Wait for ArgoCD to be ready
         run: |
@@ -62,6 +62,11 @@ jobs:
           sleep 30
 
           kubectl get pods -n argocd
+
+      - name: Install ArgoCD Application
+        run: |
+          echo "Installing ArgoCD Application for ${{ github.event.inputs.environment }} environment..."
+          kubectl apply -f kubernetes/argocd/applications/${{ github.event.inputs.environment }}-application.yaml
 
       - name: Get ArgoCD admin password
         id: argocd-password
