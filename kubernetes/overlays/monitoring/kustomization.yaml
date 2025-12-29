@@ -4,6 +4,5 @@ kind: Kustomization
 namespace: monitoring
 
 resources:
-- namespace.yaml
-- ../../base/prometheus
-- ../../base/grafana
+  - ../../base/prometheus
+  - ../../base/grafana
