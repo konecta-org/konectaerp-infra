@@ -1,0 +1,45 @@
+# Consul for Dev Environment
+global:
+  name: consul
+  datacenter: dev-dc1
+  image: "hashicorp/consul:1.18"
+
+server:
+  enabled: true
+  replicas: 1 # Single replica for dev
+  bootstrapExpect: 1
+
+  storage: 5Gi # Smaller storage for dev
+  storageClass: standard-rwo
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+client:
+  enabled: true
+  grpc: true
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "100m"
+
+ui:
+  enabled: true
+  service:
+    type: ClusterIP
+
+connectInject:
+  enabled: false
+
+dns:
+  enabled: true
+  enableRedirection: false
