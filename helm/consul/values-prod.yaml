@@ -1,0 +1,55 @@
+# Consul for Production Environment
+global:
+  name: consul
+  datacenter: prod-dc1
+  image: "hashicorp/consul:1.18"
+
+server:
+  enabled: true
+  replicas: 5 # More replicas for production HA
+  bootstrapExpect: 5
+
+  storage: 20Gi # Larger storage for production
+  storageClass: standard-rwo
+
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "1000m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app: {{ template "consul.name" . }}
+              release: "{{ .Release.Name }}"
+              component: server
+          topologyKey: kubernetes.io/hostname
+
+client:
+  enabled: true
+  grpc: true
+
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+ui:
+  enabled: true
+  service:
+    type: ClusterIP
+
+connectInject:
+  enabled: false
+
+dns:
+  enabled: true
+  enableRedirection: false

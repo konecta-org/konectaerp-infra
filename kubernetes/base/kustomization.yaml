@@ -61,9 +61,9 @@ resources:
   - reporting-service/service.yaml
   - reporting-service/hpa.yaml
 
-  - frontend/configmap.yaml
-  - frontend/deployment.yaml
   - frontend/service.yaml
+  - frontend/deployment.yaml
+  - frontend/hpa.yaml
 
   # # Monitoring
   # - prometheus
