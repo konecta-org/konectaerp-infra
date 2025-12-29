@@ -47,7 +47,7 @@ spec:
     path: kubernetes/overlays/dev
   destination:
     server: https://kubernetes.default.svc
-    namespace: dev
+    namespace: HEAD
   syncPolicy:
     automated:
       prune: true
