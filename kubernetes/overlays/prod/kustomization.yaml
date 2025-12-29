@@ -1,57 +1,62 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: default
+namespace: prod
 
 resources:
-  - ../../base
+- ../../base
+- namespace.yaml
 
-namePrefix: prod-
+# namePrefix: prod-
 
-commonLabels:
-  environment: production
+labels:
+- includeSelectors: true
+  pairs:
+    environment: production
 
 # Image tags for production environment (use specific versions, not latest)
 images:
-  - name: ${ARTIFACT_REGISTRY_URL}/config-server
-    newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/api-gateway
-    newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/authentication-service
-    newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/hr-service
-    newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/inventory-service
-    newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/finance-service
-    newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/user-management-service
-    newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/reporting-service
-    newTag: v1.0.0
-  - name: ${ARTIFACT_REGISTRY_URL}/frontend
-    newTag: v1.0.0
+- name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/config-server
+  newTag: v1.0.0
+- name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/api-gateway
+  newTag: v1.0.0
+- name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/authentication-service
+  newTag: v1.0.0
+- name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/hr-service
+  newTag: v1.0.0
+- name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/inventory-service
+  newTag: v1.0.0
+- name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/finance-service
+  newTag: v1.0.0
+- name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/user-management-service
+  newTag: v1.0.0
+- name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/reporting-service
+  newTag: v1.0.0
+- name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/frontend
+  newTag: v1.0.0
 
-patchesStrategicMerge:
-  - patch-replicas.yaml
-  - patch-resources.yaml
-  - patch-hpa.yaml
-  - monitoring-patch.yaml
 
 # Remove MailHog in production
-patchesJson6902:
-  - target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: mailhog
-    patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 0
 
 configMapGenerator:
-  - name: environment-config
-    literals:
-      - ENVIRONMENT=production
-      - LOG_LEVEL=WARN
+- literals:
+  - ENVIRONMENT=production
+  - LOG_LEVEL=WARN
+  name: environment-config
+
+generatorOptions:
+  disableNameSuffixHash: true
+patches:
+- patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 0
+  target:
+    group: apps
+    kind: Deployment
+    name: mailhog
+    version: v1
+- path: patch-replicas.yaml
+- path: patch-resources.yaml
+- path: patch-hpa.yaml
+- path: monitoring-patch.yaml

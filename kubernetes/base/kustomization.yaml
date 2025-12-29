@@ -2,7 +2,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: default
+# namespace: default
 
 resources:
   # Infrastructure
@@ -36,17 +36,38 @@ resources:
   - authentication-service/service.yaml
   - authentication-service/hpa.yaml
 
-  - hr-service/all.yaml
-  - inventory-service/all.yaml
-  - finance-service/all.yaml
-  - user-management-service/all.yaml
-  - reporting-service/all.yaml
+  - hr-service/configmap.yaml
+  - hr-service/deployment.yaml
+  - hr-service/service.yaml
+  - hr-service/hpa.yaml
 
-  - frontend/all.yaml
+  - inventory-service/configmap.yaml
+  - inventory-service/deployment.yaml
+  - inventory-service/service.yaml
+  - inventory-service/hpa.yaml
 
-  # Monitoring
-  - prometheus
-  - grafana
+  - finance-service/configmap.yaml
+  - finance-service/deployment.yaml
+  - finance-service/service.yaml
+  - finance-service/hpa.yaml
+
+  - user-management-service/configmap.yaml
+  - user-management-service/deployment.yaml
+  - user-management-service/service.yaml
+  - user-management-service/hpa.yaml
+
+  - reporting-service/configmap.yaml
+  - reporting-service/deployment.yaml
+  - reporting-service/service.yaml
+  - reporting-service/hpa.yaml
+
+  - frontend/service.yaml
+  - frontend/deployment.yaml
+  - frontend/hpa.yaml
+
+  # # Monitoring
+  # - prometheus
+  # - grafana
 
   # Networking
   - networking/ingress.yaml

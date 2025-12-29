@@ -6,7 +6,10 @@ namespace: argocd
 resources:
   - namespace.yaml
   - install.yaml
+  - image-updater-install.yaml
 
-# Common labels for all ArgoCD resources
-commonLabels:
-  app.kubernetes.io/part-of: konecta-erp
+patches:
+  - path: image-updater-config-patch.yaml
+    target:
+      kind: ConfigMap
+      name: argocd-image-updater-config

@@ -7,6 +7,38 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "2"
+    # ArgoCD Image Updater configuration
+    argocd-image-updater.argoproj.io/image-list: |
+      config-server=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/config-server,
+      api-gateway=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/api-gateway,
+      auth-service=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/authentication-service,
+      hr-service=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/hr-service,
+      inventory-service=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/inventory-service,
+      finance-service=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/finance-service,
+      user-mgmt-service=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/user-management-service,
+      reporting-service=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/reporting-service,
+      frontend=us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/frontend
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: staging
+    # Update strategy: semantic versioning
+    argocd-image-updater.argoproj.io/config-server.update-strategy: semver
+    argocd-image-updater.argoproj.io/config-server.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/api-gateway.update-strategy: semver
+    argocd-image-updater.argoproj.io/api-gateway.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/auth-service.update-strategy: semver
+    argocd-image-updater.argoproj.io/auth-service.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/hr-service.update-strategy: semver
+    argocd-image-updater.argoproj.io/hr-service.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/inventory-service.update-strategy: semver
+    argocd-image-updater.argoproj.io/inventory-service.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/finance-service.update-strategy: semver
+    argocd-image-updater.argoproj.io/finance-service.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/user-mgmt-service.update-strategy: semver
+    argocd-image-updater.argoproj.io/user-mgmt-service.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/reporting-service.update-strategy: semver
+    argocd-image-updater.argoproj.io/reporting-service.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/frontend.update-strategy: semver
+    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
 spec:
   project: default
   source:
@@ -15,7 +47,7 @@ spec:
     path: kubernetes/overlays/staging
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: staging
   syncPolicy:
     automated:
       prune: true

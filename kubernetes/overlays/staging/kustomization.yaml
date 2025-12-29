@@ -1,43 +1,50 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: default
+namespace: staging
 
 resources:
   - ../../base
+  - namespace.yaml
 
-namePrefix: staging-
+# namePrefix: staging-
 
-commonLabels:
-  environment: staging
+labels:
+  - includeSelectors: true
+    pairs:
+      environment: staging
 
 # Image tags for staging environment
 images:
-  - name: ${ARTIFACT_REGISTRY_URL}/config-server
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/config-server
     newTag: staging-latest
-  - name: ${ARTIFACT_REGISTRY_URL}/api-gateway
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/api-gateway
     newTag: staging-latest
-  - name: ${ARTIFACT_REGISTRY_URL}/authentication-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/authentication-service
     newTag: staging-latest
-  - name: ${ARTIFACT_REGISTRY_URL}/hr-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/hr-service
     newTag: staging-latest
-  - name: ${ARTIFACT_REGISTRY_URL}/inventory-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/inventory-service
     newTag: staging-latest
-  - name: ${ARTIFACT_REGISTRY_URL}/finance-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/finance-service
     newTag: staging-latest
-  - name: ${ARTIFACT_REGISTRY_URL}/user-management-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/user-management-service
     newTag: staging-latest
-  - name: ${ARTIFACT_REGISTRY_URL}/reporting-service
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/reporting-service
     newTag: staging-latest
-  - name: ${ARTIFACT_REGISTRY_URL}/frontend
+  - name: us-central1-docker.pkg.dev/erp-system-478020/konecta-erp/frontend
     newTag: staging-latest
-
-patchesStrategicMerge:
-  - patch-resources.yaml
-  - monitoring-patch.yaml
 
 configMapGenerator:
-  - name: environment-config
-    literals:
+  - literals:
       - ENVIRONMENT=staging
       - LOG_LEVEL=INFO
+    name: environment-config
+
+generatorOptions:
+  disableNameSuffixHash: true
+patches:
+  - path: patch-resources.yaml
+  - path: patch-hpa.yaml
+  - path: patch-replicas.yaml
+  - path: patch-resources.yaml

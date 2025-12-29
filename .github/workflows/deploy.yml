@@ -1,11 +1,11 @@
 name: Deploy to GKE
 
-on:
-  push:
-    branches:
-      - main
-      - staging
-      - dev
+# on:
+#   push:
+#     branches:
+#       - main
+#       - staging
+#       - dev
 
 env:
   REGISTRY: us-central1-docker.pkg.dev
