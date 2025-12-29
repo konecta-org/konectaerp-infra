@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  # name: prod-consul
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "0" # Deploy before application services
+spec:
+  project: default
+  source:
+    repoURL: https://helm.releases.hashicorp.com
+    chart: consul
+    targetRevision: 1.5.3 # Consul Helm chart version
+    helm:
+      valueFiles:
+        - $values/helm/consul/values-prod.yaml
+  sources:
+    - repoURL: https://helm.releases.hashicorp.com
+      chart: consul
+      targetRevision: 1.5.3
+    - repoURL: https://github.com/konecta-org/konectaerp-infra.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+  syncPolicy:
+    # Manual sync for production
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
